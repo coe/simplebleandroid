@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">SimpleBle</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="central">Central</string>
+    <string name="peripheral">Peripheral</string>
+</resources>
