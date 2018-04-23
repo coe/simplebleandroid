@@ -4,6 +4,7 @@ package jp.coe.simpleble.fragments
 import android.os.Parcelable
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,7 +22,7 @@ import kotlinx.android.synthetic.main.fragment_item.view.*
  * TODO: Replace the implementation with code for your data type.
  */
 class MyItemRecyclerViewAdapter(
-        var mValues: List<Parcelable>,
+        private var mValues: List<Parcelable>,
         private val mListener: OnListFragmentInteractionListener?)
     : RecyclerView.Adapter<MyItemRecyclerViewAdapter.ViewHolder>() {
 
@@ -54,8 +55,12 @@ class MyItemRecyclerViewAdapter(
     }
 
     fun updateList(newList: List<Parcelable>) {
+        Log.d(TAG,"updateList")
+        Log.d(TAG,"old:"+mValues.size)
+        Log.d(TAG,"newList:"+newList.size)
+
         val diffResult = DiffUtil.calculateDiff(DiffUtilCallback(this.mValues, newList))
-        this.mValues = newList
+//        this.mValues = newList
         diffResult.dispatchUpdatesTo(this)
 //                dataList.clear()
 //                dataList.addAll(it)
@@ -64,7 +69,10 @@ class MyItemRecyclerViewAdapter(
 
     }
 
-    override fun getItemCount(): Int = mValues.size
+    override fun getItemCount(): Int {
+        Log.d(TAG,"getItemCount:"+mValues.size)
+        return mValues.size
+    }
 
     inner class ViewHolder(val mView: View) : RecyclerView.ViewHolder(mView) {
         val mIdView: TextView = mView.item_number
@@ -92,4 +100,8 @@ class MyItemRecyclerViewAdapter(
                 = oldItems[oldItemPosition] == newItems[newItemPosition]
     }
 
+    companion object {
+        const val TAG = "MyItemRecyclerViewAdap"
+
+    }
 }

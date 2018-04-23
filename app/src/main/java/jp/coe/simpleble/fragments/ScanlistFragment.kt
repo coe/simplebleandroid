@@ -4,7 +4,6 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.os.Bundle
-import android.os.Parcelable
 import android.support.v4.app.Fragment
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
@@ -29,7 +28,7 @@ class ScanlistFragment : Fragment() {
 
     private var listener: OnListFragmentInteractionListener? = null
 
-    private var dataList:ArrayList<Parcelable> = ArrayList()
+//    private var dataList:ArrayList<Parcelable> = ArrayList()
 
     private lateinit var myItemRecyclerViewAdapter:MyItemRecyclerViewAdapter
 
@@ -62,7 +61,7 @@ class ScanlistFragment : Fragment() {
                     columnCount <= 1 -> LinearLayoutManager(context)
                     else -> GridLayoutManager(context, columnCount)
                 }
-                myItemRecyclerViewAdapter = MyItemRecyclerViewAdapter(dataList, listener)
+                myItemRecyclerViewAdapter = MyItemRecyclerViewAdapter(ArrayList(), listener)
                 adapter = myItemRecyclerViewAdapter
             }
         }
