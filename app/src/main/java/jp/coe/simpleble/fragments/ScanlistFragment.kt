@@ -1,18 +1,21 @@
 package jp.coe.simpleble.fragments
 
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.os.Bundle
+import android.os.Parcelable
 import android.support.v4.app.Fragment
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import jp.coe.simpleble.R
-
-import jp.coe.simpleble.fragments.dummy.DummyContent
 import jp.coe.simpleble.fragments.dummy.DummyContent.DummyItem
+import jp.coe.simpleble.viewmodels.ScanListMockViewModel
 
 /**
  * A fragment representing a list of Items.
@@ -26,8 +29,21 @@ class ScanlistFragment : Fragment() {
 
     private var listener: OnListFragmentInteractionListener? = null
 
+    private var dataList:ArrayList<Parcelable> = ArrayList()
+
+    private lateinit var myItemRecyclerViewAdapter:MyItemRecyclerViewAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG,"onCreate")
+
         super.onCreate(savedInstanceState)
+        val model = ViewModelProviders.of(this).get(ScanListMockViewModel::class.java)
+        model.getData().observe(this, Observer {
+            it?.let {
+                Log.d("hyuu","データ受信")
+                myItemRecyclerViewAdapter.updateList(it)
+            }
+        })
 
         arguments?.let {
             columnCount = it.getInt(ARG_COLUMN_COUNT)
@@ -36,6 +52,7 @@ class ScanlistFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
+        Log.d(TAG,"onCreateView")
         val view = inflater.inflate(R.layout.fragment_item_list, container, false)
 
         // Set the adapter
@@ -45,7 +62,8 @@ class ScanlistFragment : Fragment() {
                     columnCount <= 1 -> LinearLayoutManager(context)
                     else -> GridLayoutManager(context, columnCount)
                 }
-                adapter = MyItemRecyclerViewAdapter(DummyContent.ITEMS, listener)
+                myItemRecyclerViewAdapter = MyItemRecyclerViewAdapter(dataList, listener)
+                adapter = myItemRecyclerViewAdapter
             }
         }
         return view
@@ -81,10 +99,12 @@ class ScanlistFragment : Fragment() {
         fun onListFragmentInteraction(item: DummyItem?)
     }
 
+
     companion object {
 
         // TODO: Customize parameter argument names
         const val ARG_COLUMN_COUNT = "column-count"
+        const val TAG = "ScanlistFragment"
 
         // TODO: Customize parameter initialization
         @JvmStatic
