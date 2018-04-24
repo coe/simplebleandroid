@@ -13,7 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import jp.coe.simpleble.R
-import jp.coe.simpleble.fragments.dummy.DummyContent.DummyItem
+import jp.coe.simpleble.handlers.ScanListHandler
 import jp.coe.simpleble.viewmodels.ScanListMockViewModel
 
 /**
@@ -26,7 +26,7 @@ class ScanlistFragment : Fragment() {
     // TODO: Customize parameters
     private var columnCount = 1
 
-    private var listener: OnListFragmentInteractionListener? = null
+    private var listener: ScanListHandler? = null
 
 //    private var dataList:ArrayList<Parcelable> = ArrayList()
 
@@ -61,7 +61,7 @@ class ScanlistFragment : Fragment() {
                     columnCount <= 1 -> LinearLayoutManager(context)
                     else -> GridLayoutManager(context, columnCount)
                 }
-                myItemRecyclerViewAdapter = MyItemRecyclerViewAdapter(ArrayList(), listener)
+                myItemRecyclerViewAdapter = MyItemRecyclerViewAdapter(listener)
                 adapter = myItemRecyclerViewAdapter
             }
         }
@@ -70,34 +70,17 @@ class ScanlistFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-//        if (context is OnListFragmentInteractionListener) {
-//            listener = context
-//        } else {
-//            throw RuntimeException(context.toString() + " must implement OnListFragmentInteractionListener")
-//        }
+        if (context is ScanListHandler) {
+            listener = context
+        } else {
+            throw RuntimeException(context.toString() + " must implement ScanListHandler")
+        }
     }
 
     override fun onDetach() {
         super.onDetach()
         listener = null
     }
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     *
-     *
-     * See the Android Training lesson
-     * [Communicating with Other Fragments](http://developer.android.com/training/basics/fragments/communicating.html)
-     * for more information.
-     */
-    interface OnListFragmentInteractionListener {
-        // TODO: Update argument type and name
-        fun onListFragmentInteraction(item: DummyItem?)
-    }
-
 
     companion object {
 

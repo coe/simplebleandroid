@@ -1,14 +1,19 @@
 package jp.coe.simpleble
 
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Parcelable
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import jp.coe.simpleble.fragments.MainFragment
 import jp.coe.simpleble.fragments.ScanlistFragment
 import jp.coe.simpleble.handlers.MainHandler
-import kotlinx.android.synthetic.main.activity_main.*
+import jp.coe.simpleble.handlers.ScanListHandler
 
-class MainActivity : AppCompatActivity(),MainHandler {
+class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
+    override fun onClickScanList(scanList: Parcelable) {
+        //接続する
+        Log.d(TAG,"onClickScanList")
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +42,8 @@ class MainActivity : AppCompatActivity(),MainHandler {
     }
 
     override fun onClickPeripheral() {
+        //電波だす
+
     }
 
     companion object {

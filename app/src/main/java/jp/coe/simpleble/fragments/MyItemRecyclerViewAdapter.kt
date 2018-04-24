@@ -1,6 +1,7 @@
 package jp.coe.simpleble.fragments
 
 
+import android.databinding.DataBindingUtil
 import android.os.Parcelable
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -8,12 +9,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import jp.coe.simpleble.R
-import jp.coe.simpleble.fragments.ScanlistFragment.OnListFragmentInteractionListener
-import jp.coe.simpleble.fragments.dummy.DummyContent.DummyItem
-import kotlinx.android.synthetic.main.fragment_item.view.*
+import jp.coe.simpleble.databinding.FragmentItemBinding
+import jp.coe.simpleble.handlers.ScanListHandler
 import kotlin.properties.Delegates
+
+
 
 
 /**
@@ -22,8 +23,7 @@ import kotlin.properties.Delegates
  * TODO: Replace the implementation with code for your data type.
  */
 class MyItemRecyclerViewAdapter(
-        private var mValues: List<Parcelable>,
-        private val mListener: OnListFragmentInteractionListener?)
+        private val mListener: ScanListHandler?)
     : RecyclerView.Adapter<MyItemRecyclerViewAdapter.ViewHolder>() {
 
     var items: List<Parcelable> by Delegates.observable(emptyList()) { _, old, new ->
@@ -32,32 +32,16 @@ class MyItemRecyclerViewAdapter(
         calculateDiff(old, new).dispatchUpdatesTo(this)
     }
 
-    private val mOnClickListener: View.OnClickListener
-
-    init {
-        mOnClickListener = View.OnClickListener { v ->
-            val item = v.tag as DummyItem
-            // Notify the active callbacks interface (the activity, if the fragment is attached to
-            // one) that an item has been selected.
-            mListener?.onListFragmentInteraction(item)
-        }
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.fragment_item, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.fragment_item, parent, false)
         return ViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
-//        holder.mIdView.text = item.describeContents()
-        holder.mContentView.text = item.toString()
+        holder.getBinding()?.parcelable = item
 
-        with(holder.mView) {
-            tag = item
-            setOnClickListener(mOnClickListener)
-        }
+        holder.getBinding()?.handler = mListener
     }
 
     fun updateList(newList: List<Parcelable>) {
@@ -66,27 +50,24 @@ class MyItemRecyclerViewAdapter(
         Log.d(TAG,"newList:"+newList.size)
         items = newList
 
-//        val diffResult = DiffUtil.calculateDiff(DiffUtilCallback(this.mValues, newList))
-////        this.mValues = newList
-//        diffResult.dispatchUpdatesTo(this)
-////                dataList.clear()
-////                dataList.addAll(it)
-////
-////                myItemRecyclerViewAdapter.notifyDataSetChanged()
 
     }
 
     override fun getItemCount(): Int {
-        Log.d(TAG,"getItemCount:"+mValues.size)
         return items.size
     }
 
     inner class ViewHolder(val mView: View) : RecyclerView.ViewHolder(mView) {
-        val mIdView: TextView = mView.item_number
-        val mContentView: TextView = mView.content
+        private var mBinding: FragmentItemBinding? = null
+
+        init {
+            mBinding = DataBindingUtil.bind(mView)
+        }
+
+        fun getBinding(): FragmentItemBinding? = mBinding
 
         override fun toString(): String {
-            return super.toString() + " '" + mContentView.text + "'"
+            return super.toString() + " '"
         }
     }
 
