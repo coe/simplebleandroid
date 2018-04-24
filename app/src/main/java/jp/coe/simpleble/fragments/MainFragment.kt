@@ -15,6 +15,10 @@ import jp.coe.simpleble.handlers.MainHandler
 
 
 class MainFragment : Fragment(),MainHandler {
+    override fun onClickSend() {
+        listener?.onClickSend()
+    }
+
     override fun onClickImage() {
         //画像Intent
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)

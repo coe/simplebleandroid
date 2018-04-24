@@ -26,12 +26,11 @@ import java.util.*
 
 
 class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
+    override fun onClickSend() {
+
+    }
+
     override fun onClickImage() {
-        //画像Intent
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-        intent.addCategory(Intent.CATEGORY_OPENABLE)
-        intent.setType("image/jpeg")
-        startActivityForResult(intent, REQUEST_IMAGE_CAPTURE)
 
     }
 

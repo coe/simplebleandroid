@@ -4,4 +4,5 @@ interface MainHandler {
     fun onClickCentral()
     fun onClickPeripheral()
     fun onClickImage()
+    fun onClickSend()
 }
