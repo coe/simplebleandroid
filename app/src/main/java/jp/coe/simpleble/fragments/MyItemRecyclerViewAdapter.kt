@@ -13,7 +13,7 @@ import jp.coe.simpleble.R
 import jp.coe.simpleble.fragments.ScanlistFragment.OnListFragmentInteractionListener
 import jp.coe.simpleble.fragments.dummy.DummyContent.DummyItem
 import kotlinx.android.synthetic.main.fragment_item.view.*
-
+import kotlin.properties.Delegates
 
 
 /**
@@ -25,6 +25,12 @@ class MyItemRecyclerViewAdapter(
         private var mValues: List<Parcelable>,
         private val mListener: OnListFragmentInteractionListener?)
     : RecyclerView.Adapter<MyItemRecyclerViewAdapter.ViewHolder>() {
+
+    var items: List<Parcelable> by Delegates.observable(emptyList()) { _, old, new ->
+        Log.d(TAG,"old:"+old.size)
+        Log.d(TAG,"new:"+new.size)
+        calculateDiff(old, new).dispatchUpdatesTo(this)
+    }
 
     private val mOnClickListener: View.OnClickListener
 
@@ -44,7 +50,7 @@ class MyItemRecyclerViewAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = mValues[position]
+        val item = items[position]
 //        holder.mIdView.text = item.describeContents()
         holder.mContentView.text = item.toString()
 
@@ -56,22 +62,23 @@ class MyItemRecyclerViewAdapter(
 
     fun updateList(newList: List<Parcelable>) {
         Log.d(TAG,"updateList")
-        Log.d(TAG,"old:"+mValues.size)
+        Log.d(TAG,"old:"+items.size)
         Log.d(TAG,"newList:"+newList.size)
+        items = newList
 
-        val diffResult = DiffUtil.calculateDiff(DiffUtilCallback(this.mValues, newList))
-//        this.mValues = newList
-        diffResult.dispatchUpdatesTo(this)
-//                dataList.clear()
-//                dataList.addAll(it)
-//
-//                myItemRecyclerViewAdapter.notifyDataSetChanged()
+//        val diffResult = DiffUtil.calculateDiff(DiffUtilCallback(this.mValues, newList))
+////        this.mValues = newList
+//        diffResult.dispatchUpdatesTo(this)
+////                dataList.clear()
+////                dataList.addAll(it)
+////
+////                myItemRecyclerViewAdapter.notifyDataSetChanged()
 
     }
 
     override fun getItemCount(): Int {
         Log.d(TAG,"getItemCount:"+mValues.size)
-        return mValues.size
+        return items.size
     }
 
     inner class ViewHolder(val mView: View) : RecyclerView.ViewHolder(mView) {
@@ -103,5 +110,30 @@ class MyItemRecyclerViewAdapter(
     companion object {
         const val TAG = "MyItemRecyclerViewAdap"
 
+    }
+
+    private class Callback(
+            val old: List<Parcelable>,
+            val new: List<Parcelable>
+    ) : DiffUtil.Callback() {
+
+        override fun getOldListSize() = old.size
+        override fun getNewListSize() = new.size
+
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return old[oldItemPosition].equals(new[newItemPosition])
+        }
+
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return old[oldItemPosition].equals(new[newItemPosition])
+        }
+    }
+
+    fun calculateDiff(
+            old: List<Parcelable>,
+            new: List<Parcelable>,
+            detectMoves: Boolean = false
+    ): DiffUtil.DiffResult {
+        return DiffUtil.calculateDiff(Callback(old, new), detectMoves)
     }
 }

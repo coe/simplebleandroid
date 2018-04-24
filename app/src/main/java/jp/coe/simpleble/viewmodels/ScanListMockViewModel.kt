@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * Created by tsuyoshihyuga on 2018/04/23.
@@ -15,7 +16,7 @@ class ScanListMockViewModel : ViewModel(),ScanListViewModelInterface {
 
     private var liveDevices: MutableLiveData<List<Parcelable>> = MutableLiveData()
 
-    private var devices:ArrayList<Parcelable> = ArrayList()
+//    private var devices:ArrayList<Parcelable> = ArrayList()
 
     private var mTimer: Timer? = null
 
@@ -28,6 +29,12 @@ class ScanListMockViewModel : ViewModel(),ScanListViewModelInterface {
 
                 vundle.putString("param1",Date().toString())
                 Log.d(TAG,"param1:"+Date().toString())
+                val array = liveDevices.value
+                val devices:ArrayList<Parcelable> = if (array == null) {
+                    ArrayList()
+                } else {
+                    ArrayList(liveDevices.value)
+                }
 
                 devices.add(vundle)
                 liveDevices.postValue(devices)
