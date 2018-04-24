@@ -1,33 +1,28 @@
 package jp.coe.simpleble.fragments
 
 import android.content.Context
+import android.content.Intent
 import android.databinding.DataBindingUtil
-import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-
 import jp.coe.simpleble.R
 import jp.coe.simpleble.databinding.FragmentMainBinding
 import jp.coe.simpleble.handlers.MainHandler
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
 
-/**
- * A simple [Fragment] subclass.
- * Activities that contain this fragment must implement the
- * [MainFragment.OnFragmentInteractionListener] interface
- * to handle interaction events.
- * Use the [MainFragment.newInstance] factory method to
- * create an instance of this fragment.
- *
- */
+
 class MainFragment : Fragment(),MainHandler {
+    override fun onClickImage() {
+        //画像Intent
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.setType("image/jpeg")
+        startActivityForResult(intent, REQUEST_IMAGE_CAPTURE)
+    }
+
     override fun onClickCentral() {
         listener?.onClickCentral()
     }
@@ -42,8 +37,6 @@ class MainFragment : Fragment(),MainHandler {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-//            param1 = it.getString(ARG_PARAM1)
-//            param2 = it.getString(ARG_PARAM2)
         }
     }
 
@@ -70,15 +63,24 @@ class MainFragment : Fragment(),MainHandler {
         listener = null
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when(requestCode) {
+            REQUEST_IMAGE_CAPTURE -> {
+                val resultUri = if (data != null) data.data else null
+                binding.imageButton.setImageURI(resultUri)
+
+            }
+        }
+    }
 
     companion object {
+        private val REQUEST_IMAGE_CAPTURE = 1
 
         @JvmStatic
         fun newInstance() =
                 MainFragment().apply {
                     arguments = Bundle().apply {
-//                        putString(ARG_PARAM1, param1)
-//                        putString(ARG_PARAM2, param2)
                     }
                 }
     }

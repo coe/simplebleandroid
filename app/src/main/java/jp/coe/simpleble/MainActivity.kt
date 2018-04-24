@@ -9,6 +9,7 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.ScanResult
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.os.ParcelUuid
 import android.os.Parcelable
@@ -23,10 +24,31 @@ import jp.coe.simpleble.handlers.MainHandler
 import jp.coe.simpleble.handlers.ScanListHandler
 import java.util.*
 
+
 class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
+    override fun onClickImage() {
+        //画像Intent
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.setType("image/jpeg")
+        startActivityForResult(intent, REQUEST_IMAGE_CAPTURE)
+
+    }
+
+
+
     private val mBluetoothGattCallback:BluetoothGattCallback = MyBluetoothGattCallback()
     private val mBluetoothGattServerCallback: BluetoothGattServerCallback = MyBluetoothGattServerCallback()
     private val mAdvertiseCallback: AdvertiseCallback = MyAdvertiseCallback()
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when(requestCode) {
+            REQUEST_IMAGE_CAPTURE -> {
+
+            }
+        }
+    }
 
     override fun onClickScanList(scanList: Parcelable) {
         //接続する
@@ -62,7 +84,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     }
 
     override fun onClickPeripheral() {
-        //電波だす
+        //アドバタイジング開始
         val manager: BluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val server = manager.openGattServer(this,mBluetoothGattServerCallback)
 
@@ -72,7 +94,6 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         )
         server.addService(service)
         val parcelUuid = ParcelUuid(uuid)
-        //アドバタイジング開始
         val settings = AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
                 .setConnectable(true)
@@ -84,11 +105,11 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 .setIncludeDeviceName(true)
                 .build()
 
-
         manager.adapter.bluetoothLeAdvertiser.startAdvertising(settings,advertiseData,mAdvertiseCallback)
     }
 
     companion object {
+        private val REQUEST_IMAGE_CAPTURE = 1
 
         private val TAG = "MainActivity"
         private val SERVICE_UUID = "D096F3C2-5148-410A-BA6A-20FEAD00D7CA"

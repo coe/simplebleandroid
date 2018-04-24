@@ -6,4 +6,6 @@
     <string name="central">Central</string>
     <string name="peripheral">Peripheral</string>
     <string name="name">name</string>
+    <string name="image_button">image button</string>
+    <string name="send">send</string>
 </resources>
