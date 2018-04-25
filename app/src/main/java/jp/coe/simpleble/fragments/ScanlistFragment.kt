@@ -4,6 +4,7 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.os.Bundle
+import android.os.Parcelable
 import android.support.v4.app.Fragment
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
@@ -40,7 +41,10 @@ class ScanlistFragment : Fragment() {
         model.getData().observe(this, Observer {
             it?.let {
                 Log.d("hyuu","データ受信")
-                myItemRecyclerViewAdapter.updateList(it)
+                val list:List<Parcelable> = it.map {
+                    it.value
+                }
+                myItemRecyclerViewAdapter.updateList(list)
             }
         })
 

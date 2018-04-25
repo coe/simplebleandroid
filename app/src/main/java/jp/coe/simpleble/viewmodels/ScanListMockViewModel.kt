@@ -7,20 +7,19 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
 import java.util.*
-import kotlin.collections.ArrayList
 
 /**
  * Created by tsuyoshihyuga on 2018/04/23.
  */
 class ScanListMockViewModel : ViewModel(),ScanListViewModelInterface {
 
-    private var liveDevices: MutableLiveData<List<Parcelable>> = MutableLiveData()
+    private var liveDevices: MutableLiveData<MutableMap<String,Parcelable>> = MutableLiveData()
+    private var devicesMap = mutableMapOf<String,Parcelable>()
 
-//    private var devices:ArrayList<Parcelable> = ArrayList()
 
     private var mTimer: Timer? = null
 
-    override fun getData(): LiveData<List<Parcelable>> {
+    override fun getData(): LiveData<MutableMap<String,Parcelable>> {
         Log.d(TAG,"getData")
         mTimer = Timer()
         val timertask = object : TimerTask() {
@@ -29,15 +28,10 @@ class ScanListMockViewModel : ViewModel(),ScanListViewModelInterface {
 
                 vundle.putString("param1",Date().toString())
                 Log.d(TAG,"param1:"+Date().toString())
-                val array = liveDevices.value
-                val devices:ArrayList<Parcelable> = if (array == null) {
-                    ArrayList()
-                } else {
-                    ArrayList(liveDevices.value)
-                }
 
-                devices.add(vundle)
-                liveDevices.postValue(devices)
+                devicesMap.put(Date().toString(),vundle)
+
+                liveDevices.postValue(devicesMap)
             }
         }
         mTimer?.scheduleAtFixedRate(timertask, Date(), 1000)

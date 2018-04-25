@@ -7,5 +7,5 @@ import android.os.Parcelable
  * Created by tsuyoshihyuga on 2018/04/23.
  */
 interface ScanListViewModelInterface {
-    fun getData() : LiveData<List<Parcelable>>
+    fun getData() : LiveData<MutableMap<String,Parcelable>>
 }

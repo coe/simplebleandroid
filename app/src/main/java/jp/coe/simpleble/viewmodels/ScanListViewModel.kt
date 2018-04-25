@@ -23,22 +23,31 @@ import java.util.*
 class ScanListViewModel(application: Application) : AndroidViewModel(application),ScanListViewModelInterface {
     private var mApplication = WeakReference(application)
 
-    private var liveDevices: MutableLiveData<List<Parcelable>> = MutableLiveData()
+    private var liveDevices: MutableLiveData<MutableMap<String,Parcelable>> = MutableLiveData()
 
-    private var devices:ArrayList<Parcelable> = ArrayList()
+//    private var devices:ArrayList<Parcelable> = ArrayList()
+    private var devicesMap = mutableMapOf<String,Parcelable>()
 
     private val mDeviceScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             super.onScanResult(callbackType, result)
             Log.d(TAG,"onScanResult:"+callbackType)
-            devices.add(result)
+            if (!devicesMap.containsKey(result.device.address)) {
+                devicesMap.put(result.device.address,result)
+                liveDevices.postValue(devicesMap)
+            }
 
-            liveDevices.postValue(devices)
         }
 
         override fun onScanFailed(errorCode: Int) {
+            Log.d(TAG,"onScanFailed:"+errorCode)
             super.onScanFailed(errorCode)
 
+        }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+            super.onBatchScanResults(results)
+            Log.d(TAG,"onBatchScanResults:"+results?.size)
         }
     }
 
@@ -50,7 +59,7 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    override fun getData() : LiveData<List<Parcelable>> {
+    override fun getData() : LiveData<MutableMap<String,Parcelable>> {
         mApplication.get()?.let {
             val centralManager: BluetoothManager = it.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             val uuid = UUID.fromString(MainActivity.SERVICE_UUID)
@@ -61,9 +70,12 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
             val settings = ScanSettings.Builder()
                     .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
                     .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                    .setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
                     .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                     .build()
-            centralManager.adapter.bluetoothLeScanner.startScan(arrayListOf(filter), settings, mDeviceScanCallback)
+            //取れない場合がある(Bluetooth OFFとか)
+            val leScanner = centralManager.adapter.bluetoothLeScanner
+            leScanner.startScan(arrayListOf(filter), settings, mDeviceScanCallback)
         }
 
         return liveDevices
