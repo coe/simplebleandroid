@@ -31,6 +31,13 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     private var mGatt:BluetoothGatt? = null
     override fun onClickSend(imageUrl: Uri?) {
         Log.d(TAG,"onClickSend:"+imageUrl?.toString())
+        //書き込む
+        val settingsCharacteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
+                ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
+//                settingsCharacteristic?.value = baseByte
+        settingsCharacteristic?.value = "ああああ".toByteArray(Charset.defaultCharset())
+
+        mGatt?.writeCharacteristic(settingsCharacteristic)
     }
 
     override fun onClickImage() {
@@ -109,18 +116,23 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             }
 
             override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+                Log.d(TAG,"onCharacteristicWrite")
                 super.onCharacteristicWrite(gatt, characteristic, status)
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                Log.d(TAG,"onServicesDiscovered")
                 super.onServicesDiscovered(gatt, status)
-                //書き込む
-                val settingsCharacteristic: BluetoothGattCharacteristic? = gatt?.getService(UUID.fromString(SERVICE_UUID))
-                        ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
-//                settingsCharacteristic?.value = baseByte
-                settingsCharacteristic?.value = "ああああ".toByteArray(Charset.defaultCharset())
+                mGatt = gatt
+                mGatt?.services?.map {
+                    Log.d(TAG,"onServicesDiscovered service:"+it.uuid.toString())
+                    it.characteristics.map {
+                        Log.d(TAG,"onServicesDiscovered characteristic:"+it.uuid.toString())
+                    }
 
-                gatt?.writeCharacteristic(settingsCharacteristic)
+                }
+                //MainFragment
+                supportFragmentManager.popBackStack()
             }
 
             override fun onPhyUpdate(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
@@ -128,8 +140,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             }
 
             override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+                Log.d(TAG,"onMtuChanged")
                 super.onMtuChanged(gatt, mtu, status)
-                gatt?.discoverServices()
             }
 
             override fun onReliableWriteCompleted(gatt: BluetoothGatt?, status: Int) {
@@ -153,11 +165,13 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             }
 
             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+                Log.d(TAG,"onConnectionStateChange:"+newState)
                 super.onConnectionStateChange(gatt, status, newState)
                 when (newState) {
                     BluetoothProfile.STATE_CONNECTED -> {
                         //onServicesDiscoveredに移行
-//                        gatt?.discoverServices()
+                        gatt?.discoverServices()
+
                     }
                     BluetoothProfile.STATE_DISCONNECTED -> {
                     }

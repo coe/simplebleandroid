@@ -31,7 +31,6 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
     private val mDeviceScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             super.onScanResult(callbackType, result)
-            Log.d(TAG,"onScanResult:"+callbackType)
             if (!devicesMap.containsKey(result.device.address)) {
                 devicesMap.put(result.device.address,result)
                 liveDevices.postValue(devicesMap)
