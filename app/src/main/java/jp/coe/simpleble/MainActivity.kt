@@ -8,6 +8,7 @@ import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.ParcelUuid
 import android.os.Parcelable
@@ -28,8 +29,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
 
     private var mGatt:BluetoothGatt? = null
-    override fun onClickSend() {
-
+    override fun onClickSend(imageUrl: Uri?) {
+        Log.d(TAG,"onClickSend:"+imageUrl?.toString())
     }
 
     override fun onClickImage() {

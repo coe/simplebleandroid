@@ -2,21 +2,25 @@ package jp.coe.simpleble.fragments
 
 import android.content.Context
 import android.content.Intent
+import android.databinding.BindingAdapter
 import android.databinding.DataBindingUtil
+import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import jp.coe.simpleble.R
 import jp.coe.simpleble.databinding.FragmentMainBinding
 import jp.coe.simpleble.handlers.MainHandler
-
+import jp.coe.simpleble.observable.MainObservable
 
 
 class MainFragment : Fragment(),MainHandler {
-    override fun onClickSend() {
-        listener?.onClickSend()
+    override fun onClickSend(imageUrl:Uri?)
+    {
+        listener?.onClickSend(imageUrl)
     }
 
     override fun onClickImage() {
@@ -36,6 +40,7 @@ class MainFragment : Fragment(),MainHandler {
     }
 
     lateinit var binding:FragmentMainBinding
+    var mainObservable:MainObservable = MainObservable()
     private var listener: MainHandler? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,6 +54,7 @@ class MainFragment : Fragment(),MainHandler {
         // Inflate the layout for this fragment
         binding = DataBindingUtil.inflate(inflater,R.layout.fragment_main, container, false)
         binding.handler = this
+        binding.mainObservable = mainObservable
         return binding.root
     }
 
@@ -71,8 +77,8 @@ class MainFragment : Fragment(),MainHandler {
         super.onActivityResult(requestCode, resultCode, data)
         when(requestCode) {
             REQUEST_IMAGE_CAPTURE -> {
-                val resultUri = if (data != null) data.data else null
-                binding.imageButton.setImageURI(resultUri)
+                val resultUri: Uri? = if (data != null) data.data else null
+                mainObservable.imageUri = resultUri
 
             }
         }
@@ -87,5 +93,13 @@ class MainFragment : Fragment(),MainHandler {
                     arguments = Bundle().apply {
                     }
                 }
+    }
+}
+
+object ImageViewBindingAdapter {
+    @BindingAdapter("bind:imageUri")
+    @JvmStatic
+    fun loadImage(view: ImageButton, uri: Uri?) {
+        view.setImageURI(uri)
     }
 }
