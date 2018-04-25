@@ -14,7 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import jp.coe.simpleble.R
 import jp.coe.simpleble.handlers.ScanListHandler
-import jp.coe.simpleble.viewmodels.ScanListMockViewModel
+import jp.coe.simpleble.viewmodels.ScanListViewModel
 
 /**
  * A fragment representing a list of Items.
@@ -36,7 +36,7 @@ class ScanlistFragment : Fragment() {
         Log.d(TAG,"onCreate")
 
         super.onCreate(savedInstanceState)
-        val model = ViewModelProviders.of(this).get(ScanListMockViewModel::class.java)
+        val model = ViewModelProviders.of(this).get(ScanListViewModel::class.java)
         model.getData().observe(this, Observer {
             it?.let {
                 Log.d("hyuu","データ受信")

@@ -8,4 +8,5 @@
     <string name="name">name</string>
     <string name="image_button">image button</string>
     <string name="send">send</string>
+    <string name="not_permission">権限がありません</string>
 </resources>

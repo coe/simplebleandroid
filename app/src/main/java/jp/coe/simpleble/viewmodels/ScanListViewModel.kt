@@ -10,8 +10,12 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.ParcelUuid
 import android.os.Parcelable
+import android.util.Log
+import jp.coe.simpleble.MainActivity
 import java.lang.ref.WeakReference
+import java.util.*
 
 /**
  * Created by tsuyoshihyuga on 2018/04/23.
@@ -26,6 +30,7 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
     private val mDeviceScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             super.onScanResult(callbackType, result)
+            Log.d(TAG,"onScanResult:"+callbackType)
             devices.add(result)
 
             liveDevices.postValue(devices)
@@ -39,21 +44,32 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
 
     override fun onCleared() {
         super.onCleared()
+        mApplication.get()?.let {
+            val centralManager: BluetoothManager = it.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            centralManager.adapter.bluetoothLeScanner.stopScan(mDeviceScanCallback)
+        }
     }
 
     override fun getData() : LiveData<List<Parcelable>> {
         mApplication.get()?.let {
             val centralManager: BluetoothManager = it.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            val uuid = UUID.fromString(MainActivity.SERVICE_UUID)
+            val parcelUuid = ParcelUuid(uuid)
             val filter = ScanFilter.Builder()
+                    .setServiceUuid(parcelUuid)
+                    .build()
             val settings = ScanSettings.Builder()
                     .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
                     .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                     .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                     .build()
-            centralManager.adapter.bluetoothLeScanner.startScan(arrayListOf(filter.build()), settings, mDeviceScanCallback)
+            centralManager.adapter.bluetoothLeScanner.startScan(arrayListOf(filter), settings, mDeviceScanCallback)
         }
 
         return liveDevices
     }
 
+    companion object {
+        private val TAG = "ScanListViewModel"
+    }
 }
