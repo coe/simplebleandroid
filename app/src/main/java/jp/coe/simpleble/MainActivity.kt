@@ -9,6 +9,7 @@ import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Bitmap.CompressFormat
 import android.os.Bundle
 import android.os.ParcelUuid
 import android.os.Parcelable
@@ -21,6 +22,7 @@ import jp.coe.simpleble.fragments.MainFragment
 import jp.coe.simpleble.fragments.ScanlistFragment
 import jp.coe.simpleble.handlers.MainHandler
 import jp.coe.simpleble.handlers.ScanListHandler
+import java.io.ByteArrayOutputStream
 import java.nio.charset.Charset
 import java.util.*
 
@@ -32,12 +34,27 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     override fun onClickSend(imageBitmap: Bitmap?)
     {
         Log.d(TAG,"onClickSend:"+imageBitmap?.byteCount)
+        val baoStream = ByteArrayOutputStream()
+        imageBitmap?.compress(CompressFormat.JPEG, 90, baoStream)
+        baoStream.flush()
+        val bArray = baoStream.toByteArray()
+        baoStream.close()
+
 
         //書き込む
         val settingsCharacteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
                 ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
 //                settingsCharacteristic?.value = baseByte
-        settingsCharacteristic?.value = "ああああ".toByteArray(Charset.defaultCharset())
+        settingsCharacteristic?.value = bArray//"ああああ".toByteArray(Charset.defaultCharset())
+
+        /**
+         * setValue
+
+        added in API level 18
+        boolean setValue (int value,
+        int formatType,
+        int offset)
+         */
 
         mGatt?.writeCharacteristic(settingsCharacteristic)
     }
