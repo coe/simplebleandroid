@@ -29,6 +29,7 @@ import java.util.*
 
 class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
+    private var mMtu = 32
 
     private var mGatt:BluetoothGatt? = null
     override fun onClickSend(imageBitmap: Bitmap?)
@@ -39,86 +40,35 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         baoStream.flush()
         val bArray = baoStream.toByteArray()
         baoStream.close()
+        sendBytes(bArray)
 
+    }
 
+    private fun sendBytes(bArray: ByteArray?) {
         //書き込む
         val settingsCharacteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
                 ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
 //                settingsCharacteristic?.value = baseByte
-        settingsCharacteristic?.value = bArray//"ああああ".toByteArray(Charset.defaultCharset())
+        mGatt?.beginReliableWrite()
 
-        /**
-         * setValue
-
-        added in API level 18
-        boolean setValue (int value,
-        int formatType,
-        int offset)
-         */
-
-        mGatt?.writeCharacteristic(settingsCharacteristic)
+        sendingByte = bArray
+        sendByte(settingsCharacteristic!!)
     }
 
-    override fun onClickImage() {
+    private var sendingByte:ByteArray? = null
+    private var mOffset = 0
 
-    }
+    private fun sendByte(settingsCharacteristic:BluetoothGattCharacteristic){
+        sendingByte?.let {
+            //TODO:32バイトずつ送る
+            val b = it.get(1)
+            val data = b.toInt()
+            settingsCharacteristic.setValue(data,BluetoothGattCharacteristic.FORMAT_SINT32,mOffset)
+            mGatt?.writeCharacteristic(settingsCharacteristic)
 
-    private var connectingDevice:BluetoothDevice? = null
-    private var state = -1
-
-    private var bluetoothGattServer:BluetoothGattServer? = null
-
-    private val mBluetoothGattServerCallback: BluetoothGattServerCallback = object : BluetoothGattServerCallback() {
-        override fun onDescriptorReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor?) {
-            super.onDescriptorReadRequest(device, requestId, offset, descriptor)
-        }
-
-        override fun onNotificationSent(device: BluetoothDevice?, status: Int) {
-            super.onNotificationSent(device, status)
-        }
-
-        override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
-            super.onMtuChanged(device, mtu)
-        }
-
-        override fun onPhyUpdate(device: BluetoothDevice?, txPhy: Int, rxPhy: Int, status: Int) {
-            super.onPhyUpdate(device, txPhy, rxPhy, status)
-        }
-
-        override fun onExecuteWrite(device: BluetoothDevice?, requestId: Int, execute: Boolean) {
-            super.onExecuteWrite(device, requestId, execute)
-        }
-
-        override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
-            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
-            val log = value?.toString(Charset.defaultCharset())
-            Log.d(TAG,"onCharacteristicWriteRequest:"+log)
-            bluetoothGattServer?.sendResponse(device,requestId,BluetoothGatt.GATT_SUCCESS,offset, value)
-        }
-
-        override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {
-            super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
-        }
-
-        override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
-            super.onConnectionStateChange(device, status, newState)
-        }
-
-        override fun onPhyRead(device: BluetoothDevice?, txPhy: Int, rxPhy: Int, status: Int) {
-            super.onPhyRead(device, txPhy, rxPhy, status)
-        }
-
-        override fun onDescriptorWriteRequest(device: BluetoothDevice?, requestId: Int, descriptor: BluetoothGattDescriptor?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
-            super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value)
-        }
-
-        override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
-            super.onServiceAdded(status, service)
         }
     }
-    private val mAdvertiseCallback: AdvertiseCallback = object : AdvertiseCallback(){
 
-    }
 
     override fun onClickScanList(scanList: Parcelable) {
         //接続する
@@ -203,6 +153,67 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             }
         })
 
+
+    }
+
+    override fun onClickImage() {
+
+    }
+
+    private var connectingDevice:BluetoothDevice? = null
+    private var state = -1
+
+    private var bluetoothGattServer:BluetoothGattServer? = null
+
+    private val mBluetoothGattServerCallback: BluetoothGattServerCallback = object : BluetoothGattServerCallback() {
+        override fun onDescriptorReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor?) {
+            super.onDescriptorReadRequest(device, requestId, offset, descriptor)
+        }
+
+        override fun onNotificationSent(device: BluetoothDevice?, status: Int) {
+            super.onNotificationSent(device, status)
+        }
+
+        override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
+            super.onMtuChanged(device, mtu)
+        }
+
+        override fun onPhyUpdate(device: BluetoothDevice?, txPhy: Int, rxPhy: Int, status: Int) {
+            super.onPhyUpdate(device, txPhy, rxPhy, status)
+        }
+
+        override fun onExecuteWrite(device: BluetoothDevice?, requestId: Int, execute: Boolean) {
+            super.onExecuteWrite(device, requestId, execute)
+        }
+
+        override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
+            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
+            val log = value?.toString(Charset.defaultCharset())
+            Log.d(TAG,"onCharacteristicWriteRequest:"+log)
+            bluetoothGattServer?.sendResponse(device,requestId,BluetoothGatt.GATT_SUCCESS,offset, value)
+        }
+
+        override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {
+            super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
+        }
+
+        override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
+            super.onConnectionStateChange(device, status, newState)
+        }
+
+        override fun onPhyRead(device: BluetoothDevice?, txPhy: Int, rxPhy: Int, status: Int) {
+            super.onPhyRead(device, txPhy, rxPhy, status)
+        }
+
+        override fun onDescriptorWriteRequest(device: BluetoothDevice?, requestId: Int, descriptor: BluetoothGattDescriptor?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
+            super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value)
+        }
+
+        override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
+            super.onServiceAdded(status, service)
+        }
+    }
+    private val mAdvertiseCallback: AdvertiseCallback = object : AdvertiseCallback(){
 
     }
 
