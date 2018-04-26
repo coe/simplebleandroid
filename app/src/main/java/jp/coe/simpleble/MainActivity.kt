@@ -8,7 +8,7 @@ import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.ParcelUuid
 import android.os.Parcelable
@@ -29,8 +29,9 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
 
     private var mGatt:BluetoothGatt? = null
-    override fun onClickSend(imageUrl: Uri?) {
-        Log.d(TAG,"onClickSend:"+imageUrl?.toString())
+    override fun onClickSend(imageBitmap: Bitmap?)
+    {
+        Log.d(TAG,"onClickSend")
         //書き込む
         val settingsCharacteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
                 ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
