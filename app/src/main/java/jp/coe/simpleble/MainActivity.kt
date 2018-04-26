@@ -31,7 +31,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     private var mGatt:BluetoothGatt? = null
     override fun onClickSend(imageBitmap: Bitmap?)
     {
-        Log.d(TAG,"onClickSend")
+        Log.d(TAG,"onClickSend:"+imageBitmap?.byteCount)
+
         //書き込む
         val settingsCharacteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
                 ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
