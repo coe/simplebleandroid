@@ -29,6 +29,12 @@ import java.util.*
 
 class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
+    /**
+     * 一回の交換で遅れるバイト数
+     * 一般的なAndroid端末であれば512で送れるが、FREETELが250、XPeriaが180前後が限度になる
+     */
+    private val MTU_MAX = 128
+
     private var mMtu = 32
 
     private var mGatt:BluetoothGatt? = null
@@ -40,6 +46,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         baoStream.flush()
         val bArray = baoStream.toByteArray()
         baoStream.close()
+
         sendBytes(bArray)
 
     }
@@ -57,13 +64,21 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     private var sendingByte:ByteArray? = null
     private var mOffset = 0
+    private var sendingBytesList:LinkedList<ByteArray> = LinkedList()
 
     private fun sendByte(settingsCharacteristic:BluetoothGattCharacteristic){
         sendingByte?.let {
-            //TODO:32バイトずつ送る
+            //mMtuずつ送る
             val b = it.get(1)
-            val data = b.toInt()
-            settingsCharacteristic.setValue(data,BluetoothGattCharacteristic.FORMAT_SINT32,mOffset)
+            while (mOffset < it.size) {
+                val arr = it.sliceArray(mOffset..mMtu+mOffset)
+                sendingBytesList.push(arr)
+                mOffset += mMtu
+            }
+            val arr = it.sliceArray(mOffset..it.size-mOffset)
+            sendingBytesList.push(arr)
+
+            settingsCharacteristic.setValue(sendingBytesList.pop())
             mGatt?.writeCharacteristic(settingsCharacteristic)
 
         }
@@ -87,6 +102,14 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
                 Log.d(TAG,"onCharacteristicWrite")
                 super.onCharacteristicWrite(gatt, characteristic, status)
+
+                if (sendingBytesList.size == 0) {
+                    //512バイトまでしか送れないっぽい
+                    gatt?.executeReliableWrite()
+                } else  {
+                    characteristic?.setValue(sendingBytesList.pop())
+                    gatt?.writeCharacteristic(characteristic!!)
+                }
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
@@ -109,7 +132,10 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             }
 
             override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
-                Log.d(TAG,"onMtuChanged")
+                Log.d(TAG,"onMtuChanged:"+mtu)
+                mMtu = mtu
+                gatt?.discoverServices()
+
                 super.onMtuChanged(gatt, mtu, status)
             }
 
@@ -139,7 +165,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 when (newState) {
                     BluetoothProfile.STATE_CONNECTED -> {
                         //onServicesDiscoveredに移行
-                        gatt?.discoverServices()
+                        gatt?.requestMtu(MTU_MAX)
+
 
                     }
                     BluetoothProfile.STATE_DISCONNECTED -> {
