@@ -26,7 +26,9 @@ import java.io.ByteArrayOutputStream
 import java.nio.charset.Charset
 import java.util.*
 
-
+/**
+ * prepare
+ */
 class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     /**
      * 一回の交換で送れるexecuteReliableWriteあたりのバイト数
