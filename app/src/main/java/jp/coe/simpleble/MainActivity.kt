@@ -27,7 +27,12 @@ import java.nio.charset.Charset
 import java.util.*
 
 /**
- * prepare
+ * 画面起動時にBLEの準備を行う>OK
+ * 画面起動時にPeripheralとしてのアドバタイズを行う > OK
+ * スキャン画面に移行する機能をもつ > OK
+ * カメラボタンで画像を取得する
+ * 送信ボタンを押したら画像を送信する
+ * Centralからデータを受信した、画像を表示する
  */
 class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     /**
