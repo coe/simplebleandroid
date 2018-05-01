@@ -18,6 +18,8 @@ import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import jp.coe.simpleble.fragments.MainFragment
 import jp.coe.simpleble.fragments.ScanlistFragment
 import jp.coe.simpleble.handlers.MainHandler
@@ -50,6 +52,62 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     private var mMtu = 32
 
     private var mGatt:BluetoothGatt? = null
+
+    private val advertiseCallback:AdvertiseCallback = object : AdvertiseCallback(){
+
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val fragment = MainFragment.newInstance()
+        supportFragmentManager.beginTransaction().add(R.id.container,fragment).commit()
+
+        val manager: BluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+
+        bluetoothGattServer = manager.openGattServer(this,mBluetoothGattServerCallback)
+
+        val service = BluetoothGattService(
+                LONG_DATA_WRITE_CHARACTERISTIC_UUID,BluetoothGattService.SERVICE_TYPE_PRIMARY
+        )
+        bluetoothGattServer?.addService(service)
+        //アドバタイジング開始
+        val parcelUuid = ParcelUuid(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
+        val settings = AdvertiseSettings.Builder()
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
+                .setConnectable(true)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                .build()
+
+        val advertiseData = AdvertiseData.Builder()
+                .addServiceUuid(parcelUuid)
+                .setIncludeDeviceName(true)
+                .build()
+
+        manager.adapter.bluetoothLeAdvertiser.startAdvertising(settings,advertiseData,advertiseCallback)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu,menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        when(item?.itemId) {
+            R.id.menu_camera -> {
+
+            }
+            R.id.menu_scan -> {
+
+            }
+            R.id.menu_send -> {
+
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
     override fun onClickSend(imageBitmap: Bitmap?)
     {
         Log.d(TAG,"onClickSend:"+imageBitmap?.byteCount)
@@ -279,24 +337,6 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        val fragment = MainFragment.newInstance()
-        supportFragmentManager.beginTransaction().add(R.id.container,fragment).commit()
-
-        val uuid = UUID.fromString(SERVICE_UUID)
-        val manager: BluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-
-        bluetoothGattServer = manager.openGattServer(this,mBluetoothGattServerCallback)
-
-        val service = BluetoothGattService(
-                uuid,BluetoothGattService.SERVICE_TYPE_PRIMARY
-        )
-        bluetoothGattServer?.addService(service)
-    }
-
     override fun onStart() {
         super.onStart()
         val permissioncheck = ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -337,33 +377,21 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     }
 
     override fun onClickPeripheral() {
-        //アドバタイジング開始
-        val manager: BluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        val uuid = UUID.fromString(SERVICE_UUID)
 
-        val parcelUuid = ParcelUuid(uuid)
-        val settings = AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
-                .setConnectable(true)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-                .build()
-
-        val advertiseData = AdvertiseData.Builder()
-                .addServiceUuid(parcelUuid)
-                .setIncludeDeviceName(true)
-                .build()
-
-        manager.adapter.bluetoothLeAdvertiser.startAdvertising(settings,advertiseData,object : AdvertiseCallback(){
-
-        })
     }
 
     companion object {
+        private val LONG_DATA_SERVICE_UUID = UUID.fromString("D096F3C2-5148-410A-BA6A-20FEAD00D7CA")
+        private val LONG_DATA_WRITE_CHARACTERISTIC_UUID = UUID.fromString("D096F3C2-5148-410A-BA6A-20FEAD00D7CA")
+        private val LONG_DATA_WRITE_LENGTH_DESCRIPTOR_UUID = UUID.fromString("C4BDAB8A-BAC1-477A-925C-E1665553953C")
+
         private val PERMISSION_REQUEST = 1
 
         private val TAG = "MainActivity"
         val SERVICE_UUID = "D096F3C2-5148-410A-BA6A-20FEAD00D7CA"
         val IMAGE_WRITE_CHARACTERISTIC_UUID = "42184378-A26D-474B-82CA-43C03AA7A701"
+
+
 
         // Used to load the 'native-lib' library on application startup.
         init {
