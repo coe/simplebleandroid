@@ -14,15 +14,11 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
+import android.widget.ImageView
 import jp.coe.simpleble.R
 import jp.coe.simpleble.databinding.FragmentMainBinding
 import jp.coe.simpleble.handlers.MainHandler
 import jp.coe.simpleble.observable.MainObservable
-
-
-
-
 
 
 class MainFragment : Fragment(),MainHandler {
@@ -62,6 +58,10 @@ class MainFragment : Fragment(),MainHandler {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
+            val imageBitmap:Bitmap? = it.get("data") as Bitmap?
+            imageBitmap?.let {
+                mainObservable.imageBitmap = it
+            }
         }
     }
 
@@ -119,9 +119,12 @@ class MainFragment : Fragment(),MainHandler {
         private val REQUEST_IMAGE_CAPTURE = 1
 
         @JvmStatic
-        fun newInstance() =
+        fun newInstance(takePictureResultBundle:Bundle?) =
                 MainFragment().apply {
                     arguments = Bundle().apply {
+                        takePictureResultBundle?.let {
+                            putAll(it)
+                        }
                     }
                 }
     }
@@ -130,13 +133,13 @@ class MainFragment : Fragment(),MainHandler {
 object ImageViewBindingAdapter {
     @BindingAdapter("bind:imageUri")
     @JvmStatic
-    fun loadImage(view: ImageButton, uri: Uri?) {
+    fun loadImage(view: ImageView, uri: Uri?) {
         view.setImageURI(uri)
     }
 
     @BindingAdapter("bind:imageBitmap")
     @JvmStatic
-    fun loadImageBitmap(view: ImageButton, bitmap: Bitmap?) {
+    fun loadImageBitmap(view: ImageView, bitmap: Bitmap?) {
         Log.d("ImageViewBindingAdapter","loadImageBitmap")
         view.setImageBitmap(bitmap)
     }

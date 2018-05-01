@@ -1,18 +1,21 @@
 package jp.coe.simpleble
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.*
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.ScanResult
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Bitmap.CompressFormat
 import android.os.Bundle
 import android.os.ParcelUuid
 import android.os.Parcelable
+import android.provider.MediaStore
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
@@ -61,7 +64,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val fragment = MainFragment.newInstance()
+        val fragment = MainFragment.newInstance(null)
         supportFragmentManager.beginTransaction().add(R.id.container,fragment).commit()
 
         val manager: BluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -96,7 +99,10 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when(item?.itemId) {
             R.id.menu_camera -> {
-
+                val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
+                }
             }
             R.id.menu_scan -> {
 
@@ -106,6 +112,21 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when(resultCode) {
+            Activity.RESULT_OK -> {
+                when(requestCode) {
+                    REQUEST_IMAGE_CAPTURE -> {
+                        val extras = data?.getExtras()
+                        val fragment = MainFragment.newInstance(extras)
+                        supportFragmentManager.beginTransaction().replace(R.id.container,fragment).commit()
+                    }
+                }
+            }
+        }
     }
 
     override fun onClickSend(imageBitmap: Bitmap?)
@@ -386,6 +407,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         private val LONG_DATA_WRITE_LENGTH_DESCRIPTOR_UUID = UUID.fromString("C4BDAB8A-BAC1-477A-925C-E1665553953C")
 
         private val PERMISSION_REQUEST = 1
+
+        private val REQUEST_IMAGE_CAPTURE = 1
 
         private val TAG = "MainActivity"
         val SERVICE_UUID = "D096F3C2-5148-410A-BA6A-20FEAD00D7CA"
