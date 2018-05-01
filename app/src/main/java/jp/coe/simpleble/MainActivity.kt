@@ -10,6 +10,7 @@ import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.databinding.DataBindingUtil
 import android.graphics.Bitmap
 import android.graphics.Bitmap.CompressFormat
 import android.os.Bundle
@@ -17,16 +18,19 @@ import android.os.ParcelUuid
 import android.os.Parcelable
 import android.provider.MediaStore
 import android.support.v4.app.ActivityCompat
+import android.support.v4.app.ActivityManagerCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import jp.coe.simpleble.databinding.ActivityMainBinding
 import jp.coe.simpleble.fragments.MainFragment
 import jp.coe.simpleble.fragments.ScanlistFragment
 import jp.coe.simpleble.handlers.MainHandler
 import jp.coe.simpleble.handlers.ScanListHandler
+import jp.coe.simpleble.observable.MainObservable
 import java.io.ByteArrayOutputStream
 import java.nio.charset.Charset
 import java.util.*
@@ -56,16 +60,16 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     private var mGatt:BluetoothGatt? = null
 
+    private var mainObservable: MainObservable = MainObservable()
+
     private val advertiseCallback:AdvertiseCallback = object : AdvertiseCallback(){
 
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        val fragment = MainFragment.newInstance(null)
-        supportFragmentManager.beginTransaction().add(R.id.container,fragment).commit()
+        val binding = DataBindingUtil.setContentView<ActivityMainBinding>(this,R.layout.activity_main)
+        binding.mainObservable = mainObservable
 
         val manager: BluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
 
@@ -105,9 +109,18 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 }
             }
             R.id.menu_scan -> {
-
+                val intent = Intent(this,ScanListActivity::class.java)
+                startActivityForResult(intent,REQUEST_SCAN_LIST)
             }
             R.id.menu_send -> {
+//                Log.d(TAG,"onClickSend:"+imageBitmap?.byteCount)
+//                val baoStream = ByteArrayOutputStream()
+//                imageBitmap?.compress(CompressFormat.JPEG, 90, baoStream)
+//                baoStream.flush()
+//                val bArray = baoStream.toByteArray()
+//                baoStream.close()
+//
+//                sendBytes(bArray)
 
             }
         }
@@ -121,8 +134,116 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 when(requestCode) {
                     REQUEST_IMAGE_CAPTURE -> {
                         val extras = data?.getExtras()
-                        val fragment = MainFragment.newInstance(extras)
-                        supportFragmentManager.beginTransaction().replace(R.id.container,fragment).commit()
+                        val imageBitmap = extras?.get("data") as Bitmap
+                        mainObservable.imageBitmap = imageBitmap
+                    }
+                    REQUEST_SCAN_LIST -> {
+                        val extras = data?.getExtras()
+                        val scanResult: ScanResult? = extras?.getParcelable(ScanListActivity.EXTRA_SCAN)
+                        mGatt = scanResult?.device?.connectGatt(this,false,object : BluetoothGattCallback(){
+                            override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
+                                super.onReadRemoteRssi(gatt, rssi, status)
+                            }
+
+                            override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+                                super.onCharacteristicRead(gatt, characteristic, status)
+                            }
+
+                            override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+                                super.onCharacteristicWrite(gatt, characteristic, status)
+
+                                var tmpSize = nowDataSize + mMtu
+
+                                if (tmpSize > MTU_MAX || sendingBytesList.size == 0) {
+                                    //512バイトまでしか送れないっぽい
+                                    Log.d(TAG,"executeReliableWrite:")
+                                    nowDataSize = 0
+                                    gatt?.executeReliableWrite()
+                                } else  {
+                                    nowDataSize += mMtu
+                                    val data = sendingBytesList.poll()
+                                    Log.d(TAG,"onCharacteristicWrite:"+data.size)
+                                    characteristic?.setValue(data)
+                                    gatt?.writeCharacteristic(characteristic!!)
+                                }
+                            }
+
+                            override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                                Log.d(TAG,"onServicesDiscovered")
+                                super.onServicesDiscovered(gatt, status)
+                                mGatt = gatt
+                                mGatt?.services?.map {
+                                    Log.d(TAG,"onServicesDiscovered service:"+it.uuid.toString())
+                                    it.characteristics.map {
+                                        Log.d(TAG,"onServicesDiscovered characteristic:"+it.uuid.toString())
+                                    }
+
+                                }
+                                //MainFragment
+                                supportFragmentManager.popBackStack()
+                            }
+
+                            override fun onPhyUpdate(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
+                                super.onPhyUpdate(gatt, txPhy, rxPhy, status)
+                            }
+
+                            override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+                                Log.d(TAG,"onMtuChanged:"+mtu)
+                                mMtu = mtu-5
+                                gatt?.discoverServices()
+
+                                super.onMtuChanged(gatt, mtu, status)
+                            }
+
+                            override fun onReliableWriteCompleted(gatt: BluetoothGatt?, status: Int) {
+                                super.onReliableWriteCompleted(gatt, status)
+                                if (sendingBytesList.size > 0) {
+                                    val data = sendingBytesList.poll()
+                                    Log.d(TAG,"onReliableWriteCompleted:"+data.size)
+                                    //書き込む
+                                    val characteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
+                                            ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
+                                    characteristic?.setValue(data)
+                                    gatt?.writeCharacteristic(characteristic!!)
+                                }
+                            }
+
+                            override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
+                                super.onDescriptorWrite(gatt, descriptor, status)
+                            }
+
+                            override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
+                                super.onCharacteristicChanged(gatt, characteristic)
+                            }
+
+                            override fun onDescriptorRead(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
+                                super.onDescriptorRead(gatt, descriptor, status)
+                            }
+
+                            override fun onPhyRead(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
+                                super.onPhyRead(gatt, txPhy, rxPhy, status)
+                            }
+
+                            override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+                                Log.d(TAG,"onConnectionStateChange:"+newState)
+                                super.onConnectionStateChange(gatt, status, newState)
+                                when (newState) {
+                                    BluetoothProfile.STATE_CONNECTED -> {
+                                        //onServicesDiscoveredに移行
+                                        gatt?.requestMtu(MTU)
+
+
+                                    }
+                                    BluetoothProfile.STATE_DISCONNECTED -> {
+                                    }
+                                    BluetoothProfile.STATE_CONNECTING -> {
+                                    }
+                                    BluetoothProfile.STATE_DISCONNECTING -> {
+
+                                    }
+                                }
+                            }
+                        })
                     }
                 }
             }
@@ -387,13 +508,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     override fun onClickCentral() {
         Log.d(TAG,"onClickCentral")
-        //リスト画面
-        val fragment = ScanlistFragment.newInstance()
-        supportFragmentManager.beginTransaction()
 
-                .replace(R.id.container,fragment)
-                .addToBackStack(null)
-                .commit()
 
     }
 
@@ -409,6 +524,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         private val PERMISSION_REQUEST = 1
 
         private val REQUEST_IMAGE_CAPTURE = 1
+        private val REQUEST_SCAN_LIST = 2
 
         private val TAG = "MainActivity"
         val SERVICE_UUID = "D096F3C2-5148-410A-BA6A-20FEAD00D7CA"
