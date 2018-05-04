@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
      * 一回の交換で送れるバイト数
      * 一般的なAndroid端末であれば512で送れるが、FREETELが250、XPeriaが180前後が限度になる
      */
-    private val MTU = 512
+    private val MTU = 517
 
     private var mMtu = 32
 
@@ -347,7 +347,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
             override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
                 Log.d(TAG,"onMtuChanged:"+mtu)
-                mMtu = mtu-5
+                mMtu = mtu
                 gatt?.discoverServices()
 
                 super.onMtuChanged(gatt, mtu, status)
