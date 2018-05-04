@@ -61,8 +61,7 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
     override fun getData() : LiveData<MutableMap<String,Parcelable>> {
         mApplication.get()?.let {
             val centralManager: BluetoothManager = it.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-            val uuid = UUID.fromString(MainActivity.SERVICE_UUID)
-            val parcelUuid = ParcelUuid(uuid)
+            val parcelUuid = ParcelUuid(MainActivity.LONG_DATA_SERVICE_UUID)
             val filter = ScanFilter.Builder()
                     .setServiceUuid(parcelUuid)
                     .build()

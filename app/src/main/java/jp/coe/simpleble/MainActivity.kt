@@ -76,11 +76,14 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         bluetoothGattServer = manager.openGattServer(this,mBluetoothGattServerCallback)
 
         val service = BluetoothGattService(
-                LONG_DATA_WRITE_CHARACTERISTIC_UUID,BluetoothGattService.SERVICE_TYPE_PRIMARY
+                LONG_DATA_SERVICE_UUID,BluetoothGattService.SERVICE_TYPE_PRIMARY
         )
+        val characteristic = BluetoothGattCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,BluetoothGattCharacteristic.PERMISSION_WRITE)
+        service.addCharacteristic(characteristic)
+
         bluetoothGattServer?.addService(service)
         //アドバタイジング開始
-        val parcelUuid = ParcelUuid(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
+        val parcelUuid = ParcelUuid(LONG_DATA_SERVICE_UUID)
         val settings = AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
                 .setConnectable(true)
@@ -113,14 +116,14 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 startActivityForResult(intent,REQUEST_SCAN_LIST)
             }
             R.id.menu_send -> {
-//                Log.d(TAG,"onClickSend:"+imageBitmap?.byteCount)
-//                val baoStream = ByteArrayOutputStream()
-//                imageBitmap?.compress(CompressFormat.JPEG, 90, baoStream)
-//                baoStream.flush()
-//                val bArray = baoStream.toByteArray()
-//                baoStream.close()
-//
-//                sendBytes(bArray)
+                Log.d(TAG,"onClickSend:"+mainObservable.imageBitmap?.byteCount)
+                val baoStream = ByteArrayOutputStream()
+                mainObservable.imageBitmap?.compress(CompressFormat.JPEG, 90, baoStream)
+                baoStream.flush()
+                val bArray = baoStream.toByteArray()
+                baoStream.close()
+
+                sendBytes(bArray)
 
             }
         }
@@ -141,13 +144,6 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                         val extras = data?.getExtras()
                         val scanResult: ScanResult? = extras?.getParcelable(ScanListActivity.EXTRA_SCAN)
                         mGatt = scanResult?.device?.connectGatt(this,false,object : BluetoothGattCallback(){
-                            override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
-                                super.onReadRemoteRssi(gatt, rssi, status)
-                            }
-
-                            override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
-                                super.onCharacteristicRead(gatt, characteristic, status)
-                            }
 
                             override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
                                 super.onCharacteristicWrite(gatt, characteristic, status)
@@ -183,10 +179,6 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                                 supportFragmentManager.popBackStack()
                             }
 
-                            override fun onPhyUpdate(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
-                                super.onPhyUpdate(gatt, txPhy, rxPhy, status)
-                            }
-
                             override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
                                 Log.d(TAG,"onMtuChanged:"+mtu)
                                 mMtu = mtu-5
@@ -201,8 +193,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                                     val data = sendingBytesList.poll()
                                     Log.d(TAG,"onReliableWriteCompleted:"+data.size)
                                     //書き込む
-                                    val characteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
-                                            ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
+                                    val characteristic = mGatt?.getService(LONG_DATA_SERVICE_UUID)
+                                            ?.getCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
                                     characteristic?.setValue(data)
                                     gatt?.writeCharacteristic(characteristic!!)
                                 }
@@ -218,10 +210,6 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
                             override fun onDescriptorRead(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
                                 super.onDescriptorRead(gatt, descriptor, status)
-                            }
-
-                            override fun onPhyRead(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
-                                super.onPhyRead(gatt, txPhy, rxPhy, status)
                             }
 
                             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
@@ -265,8 +253,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     private fun sendBytes(bArray: ByteArray?) {
         //書き込む
-        val settingsCharacteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
-                ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
+        val settingsCharacteristic = mGatt?.getService(LONG_DATA_SERVICE_UUID)
+                ?.getCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
 //                settingsCharacteristic?.value = baseByte
         mGatt?.beginReliableWrite()
 
@@ -371,8 +359,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                     val data = sendingBytesList.poll()
                     Log.d(TAG,"onReliableWriteCompleted:"+data.size)
                     //書き込む
-                    val characteristic = mGatt?.getService(UUID.fromString(SERVICE_UUID))
-                            ?.getCharacteristic(UUID.fromString(IMAGE_WRITE_CHARACTERISTIC_UUID))
+                    val characteristic = mGatt?.getService(LONG_DATA_SERVICE_UUID)
+                            ?.getCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
                     characteristic?.setValue(data)
                     gatt?.writeCharacteristic(characteristic!!)
                 }
@@ -388,10 +376,6 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
             override fun onDescriptorRead(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
                 super.onDescriptorRead(gatt, descriptor, status)
-            }
-
-            override fun onPhyRead(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
-                super.onPhyRead(gatt, txPhy, rxPhy, status)
             }
 
             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
@@ -472,6 +456,10 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         }
 
         override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
+            Log.d(TAG,"onServiceAdded:"+status)
+            service?.characteristics?.forEach {
+                Log.d(TAG,"onServiceAdded characteristics:"+it.uuid.toString())
+            }
             super.onServiceAdded(status, service)
         }
     }
@@ -517,8 +505,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     }
 
     companion object {
-        private val LONG_DATA_SERVICE_UUID = UUID.fromString("D096F3C2-5148-410A-BA6A-20FEAD00D7CA")
-        private val LONG_DATA_WRITE_CHARACTERISTIC_UUID = UUID.fromString("D096F3C2-5148-410A-BA6A-20FEAD00D7CA")
+        val LONG_DATA_SERVICE_UUID = UUID.fromString("D096F3C2-5148-410A-BA6A-20FEAD00D7CA")
+        val LONG_DATA_WRITE_CHARACTERISTIC_UUID = UUID.fromString("E053BD84-1E5B-4A6C-AD49-C672A737880C")
         private val LONG_DATA_WRITE_LENGTH_DESCRIPTOR_UUID = UUID.fromString("C4BDAB8A-BAC1-477A-925C-E1665553953C")
 
         private val PERMISSION_REQUEST = 1
@@ -527,8 +515,6 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         private val REQUEST_SCAN_LIST = 2
 
         private val TAG = "MainActivity"
-        val SERVICE_UUID = "D096F3C2-5148-410A-BA6A-20FEAD00D7CA"
-        val IMAGE_WRITE_CHARACTERISTIC_UUID = "42184378-A26D-474B-82CA-43C03AA7A701"
 
 
 
