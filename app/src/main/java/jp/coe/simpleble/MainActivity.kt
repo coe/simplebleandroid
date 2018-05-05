@@ -103,6 +103,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         return true
     }
 
+    private var byteArray:ByteArray? = null
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when(item?.itemId) {
             R.id.menu_camera -> {
@@ -120,10 +121,40 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 val baoStream = ByteArrayOutputStream()
                 mainObservable.imageBitmap?.compress(CompressFormat.JPEG, 90, baoStream)
                 baoStream.flush()
-                val bArray = baoStream.toByteArray()
+                byteArray = baoStream.toByteArray()
                 baoStream.close()
 
-                sendBytes(bArray)
+
+                byteArray?.let {
+                    mOffset = 0
+                    //mMtuずつ送る
+                    var maxsize = it.size
+                    var offset = 0
+                    val b = it.get(1)
+                    while (maxsize > mMtu) {
+                        val arr = it.sliceArray(offset..offset+mMtu-1)
+                        sendingBytesList.add(arr)
+                        offset += mMtu
+                        maxsize -= mMtu
+                    }
+                    val arr = it.sliceArray(offset..it.size-1)
+                    sendingBytesList.add(arr)
+
+                }
+
+//                mGatt?.beginReliableWrite()
+
+                //書き込む
+                val lengthCharacteristic = mGatt!!.getService(LONG_DATA_SERVICE_UUID)!!.getCharacteristic(LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID)
+                val length = byteArray!!.size
+                Log.d(TAG,"length:"+length)
+
+                val ret = lengthCharacteristic.setValue(length,BluetoothGattCharacteristic.FORMAT_UINT32,0)
+
+                Log.d(TAG,"descriptor ret:${ret}")
+                mGatt?.writeCharacteristic(lengthCharacteristic)
+
+
 
             }
         }
@@ -146,22 +177,24 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                         mGatt = scanResult?.device?.connectGatt(this,false,object : BluetoothGattCallback(){
 
                             override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+                                Log.d(TAG,"onCharacteristicWrite:")
                                 super.onCharacteristicWrite(gatt, characteristic, status)
 
-                                var tmpSize = nowDataSize + mMtu
 
-                                if (tmpSize > MTU_MAX || sendingBytesList.size == 0) {
+                                if (sendingBytesList.size == 0) {
                                     //512バイトまでしか送れないっぽい
-                                    Log.d(TAG,"executeReliableWrite:")
-                                    nowDataSize = 0
-                                    gatt?.executeReliableWrite()
+                                    Log.d(TAG,"終了:")
                                 } else  {
                                     nowDataSize += mMtu
-                                    val data = sendingBytesList.poll()
-                                    Log.d(TAG,"onCharacteristicWrite:"+data.size)
-                                    characteristic?.setValue(data)
-                                    gatt?.writeCharacteristic(characteristic!!)
+                                    val datas = sendingBytesList.poll()
+                                    Log.d(TAG,"onCharacteristicWrite:"+datas.size)
+                                    val lengthCharacteristic = gatt!!.getService(LONG_DATA_SERVICE_UUID)!!.getCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
+
+                                    lengthCharacteristic?.setValue(datas)
+                                    gatt.writeCharacteristic(lengthCharacteristic!!)
                                 }
+
+
                             }
 
                             override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
@@ -201,7 +234,9 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                             }
 
                             override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
+                                Log.d(TAG,"onDescriptorWrite:${status}")
                                 super.onDescriptorWrite(gatt, descriptor, status)
+
                             }
 
                             override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
@@ -240,165 +275,15 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     override fun onClickSend(imageBitmap: Bitmap?)
     {
-        Log.d(TAG,"onClickSend:"+imageBitmap?.byteCount)
-        val baoStream = ByteArrayOutputStream()
-        imageBitmap?.compress(CompressFormat.JPEG, 90, baoStream)
-        baoStream.flush()
-        val bArray = baoStream.toByteArray()
-        baoStream.close()
-
-        sendBytes(bArray)
 
     }
-
-    private fun sendBytes(bArray: ByteArray?) {
-        //書き込む
-        val settingsCharacteristic = mGatt?.getService(LONG_DATA_SERVICE_UUID)
-                ?.getCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
-//                settingsCharacteristic?.value = baseByte
-        mGatt?.beginReliableWrite()
-
-        sendingByte = bArray
-        sendByte(settingsCharacteristic!!)
-    }
-
-    private var sendingByte:ByteArray? = null
     private var mOffset = 0
     private var sendingBytesList:LinkedList<ByteArray> = LinkedList()
 
-    private fun sendByte(settingsCharacteristic:BluetoothGattCharacteristic){
-        sendingByte?.let {
-            mOffset = 0
-            //mMtuずつ送る
-            var maxsize = it.size
-            Log.d(TAG,"maxsize:"+maxsize)
-            var offset = 0
-            val b = it.get(1)
-            while (maxsize > mMtu) {
-                val arr = it.sliceArray(offset..offset+mMtu-1)
-                sendingBytesList.add(arr)
-                offset += mMtu
-                maxsize -= mMtu
-                Log.d(TAG,"maxsize:"+maxsize)
-            }
-            val arr = it.sliceArray(offset..it.size-1)
-            Log.d(TAG,"arrあまり:"+arr.size)
-            sendingBytesList.add(arr)
-
-            settingsCharacteristic.setValue(sendingBytesList.poll())
-            mGatt?.writeCharacteristic(settingsCharacteristic)
-
-        }
-    }
 
     var nowDataSize = 0
 
     override fun onClickScanList(scanList: Parcelable) {
-        //接続する
-        Log.d(TAG,"onClickScanList")
-        val sr:ScanResult = scanList as ScanResult
-
-        mGatt = sr.device.connectGatt(this,false,object : BluetoothGattCallback(){
-            override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
-                super.onReadRemoteRssi(gatt, rssi, status)
-            }
-
-            override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
-                super.onCharacteristicRead(gatt, characteristic, status)
-            }
-
-            override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
-                super.onCharacteristicWrite(gatt, characteristic, status)
-
-                var tmpSize = nowDataSize + mMtu
-
-                if (tmpSize > MTU_MAX || sendingBytesList.size == 0) {
-                    //512バイトまでしか送れないっぽい
-                    Log.d(TAG,"executeReliableWrite:")
-                    nowDataSize = 0
-                    gatt?.executeReliableWrite()
-                } else  {
-                    nowDataSize += mMtu
-                    val data = sendingBytesList.poll()
-                    Log.d(TAG,"onCharacteristicWrite:"+data.size)
-                    characteristic?.setValue(data)
-                    gatt?.writeCharacteristic(characteristic!!)
-                }
-            }
-
-            override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-                Log.d(TAG,"onServicesDiscovered")
-                super.onServicesDiscovered(gatt, status)
-                mGatt = gatt
-                mGatt?.services?.map {
-                    Log.d(TAG,"onServicesDiscovered service:"+it.uuid.toString())
-                    it.characteristics.map {
-                        Log.d(TAG,"onServicesDiscovered characteristic:"+it.uuid.toString())
-                    }
-
-                }
-                //MainFragment
-                supportFragmentManager.popBackStack()
-            }
-
-            override fun onPhyUpdate(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
-                super.onPhyUpdate(gatt, txPhy, rxPhy, status)
-            }
-
-            override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
-                Log.d(TAG,"onMtuChanged:"+mtu)
-                mMtu = mtu
-                gatt?.discoverServices()
-
-                super.onMtuChanged(gatt, mtu, status)
-            }
-
-            override fun onReliableWriteCompleted(gatt: BluetoothGatt?, status: Int) {
-                super.onReliableWriteCompleted(gatt, status)
-                if (sendingBytesList.size > 0) {
-                    val data = sendingBytesList.poll()
-                    Log.d(TAG,"onReliableWriteCompleted:"+data.size)
-                    //書き込む
-                    val characteristic = mGatt?.getService(LONG_DATA_SERVICE_UUID)
-                            ?.getCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID)
-                    characteristic?.setValue(data)
-                    gatt?.writeCharacteristic(characteristic!!)
-                }
-            }
-
-            override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
-                super.onDescriptorWrite(gatt, descriptor, status)
-            }
-
-            override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
-                super.onCharacteristicChanged(gatt, characteristic)
-            }
-
-            override fun onDescriptorRead(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
-                super.onDescriptorRead(gatt, descriptor, status)
-            }
-
-            override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-                Log.d(TAG,"onConnectionStateChange:"+newState)
-                super.onConnectionStateChange(gatt, status, newState)
-                when (newState) {
-                    BluetoothProfile.STATE_CONNECTED -> {
-                        //onServicesDiscoveredに移行
-                        gatt?.requestMtu(MTU)
-
-
-                    }
-                    BluetoothProfile.STATE_DISCONNECTED -> {
-                    }
-                    BluetoothProfile.STATE_CONNECTING -> {
-                    }
-                    BluetoothProfile.STATE_DISCONNECTING -> {
-
-                    }
-                }
-            }
-        })
-
 
     }
 
@@ -507,7 +392,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
     companion object {
         val LONG_DATA_SERVICE_UUID = UUID.fromString("D096F3C2-5148-410A-BA6A-20FEAD00D7CA")
         val LONG_DATA_WRITE_CHARACTERISTIC_UUID = UUID.fromString("E053BD84-1E5B-4A6C-AD49-C672A737880C")
-        private val LONG_DATA_WRITE_LENGTH_DESCRIPTOR_UUID = UUID.fromString("C4BDAB8A-BAC1-477A-925C-E1665553953C")
+        private val LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID = UUID.fromString("C4BDAB8A-BAC1-477A-925C-E1665553953C")
 
         private val PERMISSION_REQUEST = 1
 
