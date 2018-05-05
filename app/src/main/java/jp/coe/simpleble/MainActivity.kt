@@ -78,8 +78,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         val service = BluetoothGattService(
                 LONG_DATA_SERVICE_UUID,BluetoothGattService.SERVICE_TYPE_PRIMARY
         )
-        val characteristic = BluetoothGattCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,BluetoothGattCharacteristic.PERMISSION_WRITE)
-        service.addCharacteristic(characteristic)
+        service.addCharacteristic(BluetoothGattCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE,BluetoothGattCharacteristic.PERMISSION_WRITE))
+        service.addCharacteristic(BluetoothGattCharacteristic(LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE,BluetoothGattCharacteristic.PERMISSION_WRITE))
 
         bluetoothGattServer?.addService(service)
         //アドバタイジング開始
@@ -306,6 +306,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         }
 
         override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
+            Log.d(TAG,"onMtuChanged:${mtu}")
             super.onMtuChanged(device, mtu)
         }
 
