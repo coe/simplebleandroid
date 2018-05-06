@@ -32,6 +32,7 @@ import jp.coe.simpleble.handlers.MainHandler
 import jp.coe.simpleble.handlers.ScanListHandler
 import jp.coe.simpleble.observable.MainObservable
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.util.*
 
@@ -221,6 +222,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                             }
 
                             override fun onReliableWriteCompleted(gatt: BluetoothGatt?, status: Int) {
+                                Log.d(TAG,"onReliableWriteCompleted:")
                                 super.onReliableWriteCompleted(gatt, status)
                                 if (sendingBytesList.size > 0) {
                                     val data = sendingBytesList.poll()
@@ -296,6 +298,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     private var bluetoothGattServer:BluetoothGattServer? = null
 
+    private  var maxDataSize = 0L
+
     private val mBluetoothGattServerCallback: BluetoothGattServerCallback = object : BluetoothGattServerCallback() {
         override fun onDescriptorReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor?) {
             super.onDescriptorReadRequest(device, requestId, offset, descriptor)
@@ -320,6 +324,18 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
         override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
+            when(characteristic?.uuid) {
+                LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID -> {
+                    Log.d(TAG,"onCharacteristicWriteRequest count:"+value?.size)
+                    val v = value?.reversedArray()
+                    val str:String = JavaUtil.tostr(v)!!
+                    var size = JavaUtil.toint(v)
+
+                    Log.d(TAG,"onCharacteristicWriteRequest str:"+str)
+                    Log.d(TAG,"onCharacteristicWriteRequest size:"+size)
+
+                }
+            }
             val log = value?.toString(Charset.defaultCharset())
             Log.d(TAG,"onCharacteristicWriteRequest:"+log)
             bluetoothGattServer?.sendResponse(device,requestId,BluetoothGatt.GATT_SUCCESS,offset, value)
@@ -388,6 +404,10 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     override fun onClickPeripheral() {
 
+    }
+
+    fun getUnsignedInt(bb: Long): Long {
+        return bb and 0xffffffffL
     }
 
     companion object {
