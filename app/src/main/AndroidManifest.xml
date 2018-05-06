@@ -20,7 +20,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ScanListActivity"></activity>
+        <activity android:name=".ScanListActivity" />
+        <activity android:name=".ImageActivity"></activity>
     </application>
 
 </manifest>

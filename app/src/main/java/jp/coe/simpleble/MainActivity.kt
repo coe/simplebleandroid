@@ -13,12 +13,13 @@ import android.content.pm.PackageManager
 import android.databinding.DataBindingUtil
 import android.graphics.Bitmap
 import android.graphics.Bitmap.CompressFormat
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.os.ParcelUuid
 import android.os.Parcelable
 import android.provider.MediaStore
 import android.support.v4.app.ActivityCompat
-import android.support.v4.app.ActivityManagerCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
@@ -26,14 +27,12 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import jp.coe.simpleble.databinding.ActivityMainBinding
-import jp.coe.simpleble.fragments.MainFragment
-import jp.coe.simpleble.fragments.ScanlistFragment
 import jp.coe.simpleble.handlers.MainHandler
 import jp.coe.simpleble.handlers.ScanListHandler
 import jp.coe.simpleble.observable.MainObservable
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.nio.ByteBuffer
-import java.nio.charset.Charset
 import java.util.*
 
 /**
@@ -67,8 +66,11 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     }
 
+    private lateinit var mActivity:MainActivity
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mActivity = this
         val binding = DataBindingUtil.setContentView<ActivityMainBinding>(this,R.layout.activity_main)
         binding.mainObservable = mainObservable
 
@@ -298,7 +300,9 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
     private var bluetoothGattServer:BluetoothGattServer? = null
 
-    private  var maxDataSize = 0L
+    private  var maxDataSize = 0
+
+    private var receiverdData:ByteBuffer? = null
 
     private val mBluetoothGattServerCallback: BluetoothGattServerCallback = object : BluetoothGattServerCallback() {
         override fun onDescriptorReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor?) {
@@ -324,20 +328,42 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
         override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
+            Log.d(TAG,"onCharacteristicWriteRequest count:"+value?.size)
+
             when(characteristic?.uuid) {
                 LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID -> {
                     Log.d(TAG,"onCharacteristicWriteRequest count:"+value?.size)
                     val v = value?.reversedArray()
                     val str:String = JavaUtil.tostr(v)!!
-                    var size = JavaUtil.toint(v)
+                    maxDataSize = JavaUtil.toint(v)
 
                     Log.d(TAG,"onCharacteristicWriteRequest str:"+str)
-                    Log.d(TAG,"onCharacteristicWriteRequest size:"+size)
+                    Log.d(TAG,"onCharacteristicWriteRequest size:"+maxDataSize)
+                    var appendData = byteArrayOf()
+
 
                 }
+                LONG_DATA_WRITE_CHARACTERISTIC_UUID -> {
+                    if (receiverdData == null) {
+                        receiverdData = ByteBuffer.allocate(maxDataSize)
+                    }
+                    receiverdData?.put(value)
+                    val limit = receiverdData?.remaining()
+                    Log.d(TAG,"onCharacteristicWriteRequest limit:"+limit)
+                    if (limit == 0) {
+                        //画像完了
+                        val intent = Intent(mActivity,ImageActivity::class.java)
+                        val byteArray = receiverdData?.array()
+                        val file = File.createTempFile("temp","jpg")
+                        file.writeBytes(byteArray!!)
+                        val uri = Uri.fromFile(file)
+                        intent.putExtra(ImageActivity.IMAGE_URI,uri)
+                        startActivity(intent)
+                    }
+                }
             }
-            val log = value?.toString(Charset.defaultCharset())
-            Log.d(TAG,"onCharacteristicWriteRequest:"+log)
+//            val log = value?.toString(Charset.defaultCharset())
+//            Log.d(TAG,"onCharacteristicWriteRequest:"+log)
             bluetoothGattServer?.sendResponse(device,requestId,BluetoothGatt.GATT_SUCCESS,offset, value)
         }
 
