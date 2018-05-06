@@ -75,30 +75,33 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         binding.mainObservable = mainObservable
 
         val manager: BluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        manager.adapter.bluetoothLeAdvertiser?.let {
+            bluetoothGattServer = manager.openGattServer(this,mBluetoothGattServerCallback)
 
-        bluetoothGattServer = manager.openGattServer(this,mBluetoothGattServerCallback)
+            val service = BluetoothGattService(
+                    LONG_DATA_SERVICE_UUID,BluetoothGattService.SERVICE_TYPE_PRIMARY
+            )
+            service.addCharacteristic(BluetoothGattCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE,BluetoothGattCharacteristic.PERMISSION_WRITE))
+            service.addCharacteristic(BluetoothGattCharacteristic(LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE,BluetoothGattCharacteristic.PERMISSION_WRITE))
 
-        val service = BluetoothGattService(
-                LONG_DATA_SERVICE_UUID,BluetoothGattService.SERVICE_TYPE_PRIMARY
-        )
-        service.addCharacteristic(BluetoothGattCharacteristic(LONG_DATA_WRITE_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE,BluetoothGattCharacteristic.PERMISSION_WRITE))
-        service.addCharacteristic(BluetoothGattCharacteristic(LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID,BluetoothGattCharacteristic.PROPERTY_WRITE,BluetoothGattCharacteristic.PERMISSION_WRITE))
+            bluetoothGattServer?.addService(service)
+            //アドバタイジング開始
+            val parcelUuid = ParcelUuid(LONG_DATA_SERVICE_UUID)
+            val settings = AdvertiseSettings.Builder()
+                    .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
+                    .setConnectable(true)
+                    .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                    .build()
 
-        bluetoothGattServer?.addService(service)
-        //アドバタイジング開始
-        val parcelUuid = ParcelUuid(LONG_DATA_SERVICE_UUID)
-        val settings = AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
-                .setConnectable(true)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-                .build()
+            val advertiseData = AdvertiseData.Builder()
+                    .addServiceUuid(parcelUuid)
+                    .setIncludeDeviceName(true)
+                    .build()
 
-        val advertiseData = AdvertiseData.Builder()
-                .addServiceUuid(parcelUuid)
-                .setIncludeDeviceName(true)
-                .build()
+            manager.adapter.bluetoothLeAdvertiser.startAdvertising(settings,advertiseData,advertiseCallback)
+        }
 
-        manager.adapter.bluetoothLeAdvertiser.startAdvertising(settings,advertiseData,advertiseCallback)
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -149,10 +152,11 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
 
                 //書き込む
                 val lengthCharacteristic = mGatt!!.getService(LONG_DATA_SERVICE_UUID)!!.getCharacteristic(LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID)
-                val length = byteArray!!.size
+                val length:Long = byteArray!!.size.toLong()
                 Log.d(TAG,"length:"+length)
+                val buffer = ByteBuffer.allocate(8).putLong(length)
 
-                val ret = lengthCharacteristic.setValue(length,BluetoothGattCharacteristic.FORMAT_UINT32,0)
+                val ret = lengthCharacteristic.setValue(buffer.array().reversedArray())
 
                 Log.d(TAG,"descriptor ret:${ret}")
                 mGatt?.writeCharacteristic(lengthCharacteristic)
@@ -329,15 +333,15 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
         override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
             Log.d(TAG,"onCharacteristicWriteRequest count:"+value?.size)
+            val str:String = JavaUtil.tostr(value)!!
+            Log.d(TAG,"onCharacteristicWriteRequest str:"+str)
 
             when(characteristic?.uuid) {
                 LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID -> {
                     Log.d(TAG,"onCharacteristicWriteRequest count:"+value?.size)
                     val v = value?.reversedArray()
-                    val str:String = JavaUtil.tostr(v)!!
                     maxDataSize = JavaUtil.toint(v)
 
-                    Log.d(TAG,"onCharacteristicWriteRequest str:"+str)
                     Log.d(TAG,"onCharacteristicWriteRequest size:"+maxDataSize)
                     var appendData = byteArrayOf()
 

@@ -10,6 +10,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Build
 import android.os.ParcelUuid
 import android.os.Parcelable
 import android.util.Log
@@ -30,6 +31,8 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
 
     private val mDeviceScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+            Log.d(TAG,"onScanResult:")
+
             super.onScanResult(callbackType, result)
             if (!devicesMap.containsKey(result.device.address)) {
                 devicesMap.put(result.device.address,result)
@@ -62,18 +65,24 @@ class ScanListViewModel(application: Application) : AndroidViewModel(application
         mApplication.get()?.let {
             val centralManager: BluetoothManager = it.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             val parcelUuid = ParcelUuid(MainActivity.LONG_DATA_SERVICE_UUID)
+            val leScanner = centralManager.adapter.bluetoothLeScanner
+            //取れない場合がある(Bluetooth OFFとか)
+
             val filter = ScanFilter.Builder()
                     .setServiceUuid(parcelUuid)
                     .build()
-            val settings = ScanSettings.Builder()
-                    .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
-                    .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
-                    .setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
-                    .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
-                    .build()
-            //取れない場合がある(Bluetooth OFFとか)
-            val leScanner = centralManager.adapter.bluetoothLeScanner
-            leScanner.startScan(arrayListOf(filter), settings, mDeviceScanCallback)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val settings = ScanSettings.Builder()
+                        .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
+                        .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                        .setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
+                        .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                        .build()
+
+                leScanner.startScan(arrayListOf(filter), settings, mDeviceScanCallback)
+            } else {
+                leScanner.startScan(mDeviceScanCallback)
+            }
         }
 
         return liveDevices
