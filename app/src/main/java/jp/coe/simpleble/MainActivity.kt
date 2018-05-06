@@ -156,7 +156,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 Log.d(TAG,"length:"+length)
                 val buffer = ByteBuffer.allocate(8).putLong(length)
 
-                val ret = lengthCharacteristic.setValue(buffer.array().reversedArray())
+                val ret = lengthCharacteristic.setValue(buffer.array())
 
                 Log.d(TAG,"descriptor ret:${ret}")
                 mGatt?.writeCharacteristic(lengthCharacteristic)
@@ -339,7 +339,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
             when(characteristic?.uuid) {
                 LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID -> {
                     Log.d(TAG,"onCharacteristicWriteRequest count:"+value?.size)
-                    val v = value?.reversedArray()
+                    val v = value
                     maxDataSize = JavaUtil.toint(v)
 
                     Log.d(TAG,"onCharacteristicWriteRequest size:"+maxDataSize)
