@@ -13,7 +13,6 @@ import android.content.pm.PackageManager
 import android.databinding.DataBindingUtil
 import android.graphics.Bitmap
 import android.graphics.Bitmap.CompressFormat
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.ParcelUuid
@@ -33,6 +32,7 @@ import jp.coe.simpleble.observable.MainObservable
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
 
 /**
@@ -154,7 +154,7 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 val lengthCharacteristic = mGatt!!.getService(LONG_DATA_SERVICE_UUID)!!.getCharacteristic(LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID)
                 val length:Long = byteArray!!.size.toLong()
                 Log.d(TAG,"length:"+length)
-                val buffer = ByteBuffer.allocate(8).putLong(length)
+                val buffer = ByteBuffer.allocate(8).putLong(length).order(ByteOrder.LITTLE_ENDIAN)
 
                 val ret = lengthCharacteristic.setValue(buffer.array())
 
