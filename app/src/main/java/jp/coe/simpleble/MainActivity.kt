@@ -154,7 +154,8 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 val lengthCharacteristic = mGatt!!.getService(LONG_DATA_SERVICE_UUID)!!.getCharacteristic(LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID)
                 val length:Long = byteArray!!.size.toLong()
                 Log.d(TAG,"length:"+length)
-                val buffer = ByteBuffer.allocate(8).putLong(length).order(ByteOrder.LITTLE_ENDIAN)
+                val buffer = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(length)
+                Log.d(TAG,"buffer:"+JavaUtil.tostr(buffer))
 
                 val ret = lengthCharacteristic.setValue(buffer.array())
 
@@ -340,14 +341,15 @@ class MainActivity : AppCompatActivity(),MainHandler, ScanListHandler {
                 LONG_DATA_WRITE_LENGTH_CHARACTERISTIC_UUID -> {
                     Log.d(TAG,"onCharacteristicWriteRequest count:"+value?.size)
                     val v = value
-                    maxDataSize = JavaUtil.toint(v)
-
+                    maxDataSize = ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN).getLong().toInt()
+                    receiverdData = null
                     Log.d(TAG,"onCharacteristicWriteRequest size:"+maxDataSize)
-                    var appendData = byteArrayOf()
 
 
                 }
                 LONG_DATA_WRITE_CHARACTERISTIC_UUID -> {
+                    Log.d(TAG,"onCharacteristicWriteRequest size:"+maxDataSize)
+
                     if (receiverdData == null) {
                         receiverdData = ByteBuffer.allocate(maxDataSize)
                     }
